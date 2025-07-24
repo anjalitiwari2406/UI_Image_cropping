@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Image Cropper (Frontend Only)</title>
+<style>
+    body {
+    font-family: Arial, sans-serif;
+    padding: 20px;
+    }
+    canvas {
+    border: 1px solid black;
+    display: block;
+    margin-top: 10px;
+    max-width: 100%;
+    }
+    #buttons {
+    margin-top: 10px;
+    }
+    button {
+    margin-right: 10px;
+    }
+</style>
+</head>
+<body>
+
+<h2>🖼️ Image Cropper (Frontend Only)</h2>
+<input type="file" id="upload" accept="image/*" />
+<canvas id="imageCanvas"></canvas>
+
+<div id="buttons">
+    <button id="cropBtn">✂️ Crop</button>
+    <button id="downloadBtn">⬇️ Download Cropped</button>
+</div>
+
+<h3>Cropped Image Preview:</h3>
+<canvas id="croppedCanvas"></canvas>
+
+<script>
+    const upload = document.getElementById("upload");
+    const canvas = document.getElementById("imageCanvas");
+    const ctx = canvas.getContext("2d");
+
+    const croppedCanvas = document.getElementById("croppedCanvas");
+    const croppedCtx = croppedCanvas.getContext("2d");
+
+    const cropBtn = document.getElementById("cropBtn");
+    const downloadBtn = document.getElementById("downloadBtn");
+
+    let image = new Image();
+    let isDragging = false;
+    let startX = 0, startY = 0;
+    let currentX = 0, currentY = 0;
+    let cropX = 0, cropY = 0, cropWidth = 0, cropHeight = 0;
+
+    upload.addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function (event) {
+        image.onload = () => {
+        canvas.width = image.width;
+        canvas.height = image.height;
+        ctx.drawImage(image, 0, 0);
+        };
+        image.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+    });
+
+    canvas.addEventListener("mousedown", (e) => {
+    const rect = canvas.getBoundingClientRect();
+    startX = e.clientX - rect.left;
+    startY = e.clientY - rect.top;
+    isDragging = true;
+    });
+
+    canvas.addEventListener("mousemove", (e) => {
+    if (!isDragging) return;
+
+    const rect = canvas.getBoundingClientRect();
+    currentX = Math.min(Math.max(e.clientX - rect.left, 0), canvas.width);
+    currentY = Math.min(Math.max(e.clientY - rect.top, 0), canvas.height);
+
+    const width = currentX - startX;
+    const height = currentY - startY;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(image, 0, 0);
+    ctx.strokeStyle = "red";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(startX, startY, width, height);
+    });
+
+    canvas.addEventListener("mouseup", () => {
+    isDragging = false;
+
+    cropX = Math.min(startX, currentX);
+    cropY = Math.min(startY, currentY);
+    cropWidth = Math.min(Math.abs(currentX - startX), canvas.width - cropX);
+    cropHeight = Math.min(Math.abs(currentY - startY), canvas.height - cropY);
+    });
+
+    cropBtn.addEventListener("click", () => {
+    croppedCanvas.width = cropWidth;
+    croppedCanvas.height = cropHeight;
+    croppedCtx.clearRect(0, 0, cropWidth, cropHeight);
+    croppedCtx.drawImage(
+        image,
+        cropX, cropY, cropWidth, cropHeight,
+        0, 0, cropWidth, cropHeight
+    );
+    });
+
+    downloadBtn.addEventListener("click", () => {
+    const link = document.createElement("a");
+    link.download = "cropped_image.png";
+    link.href = croppedCanvas.toDataURL("image/png");
+    link.click();
+    });
+</script>
+
+</body>
+</html>
